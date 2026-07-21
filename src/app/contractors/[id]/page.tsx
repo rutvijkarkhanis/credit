@@ -305,6 +305,12 @@ export default async function ContractorReport({
               </button>
             </form>
             <Link
+              href={`/contractors/${contractor.id}/gst`}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+            >
+              Add GST data (paste)
+            </Link>
+            <Link
               href={`/contractors/${contractor.id}/mca`}
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >

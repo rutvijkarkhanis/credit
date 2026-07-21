@@ -275,9 +275,14 @@ const debarmentLists: SourceAdapter = {
   },
 };
 
+// GST is now a real, manually-pasted source (see src/lib/sources/manual/gst.ts),
+// so its mock adapters are retired — they'd otherwise stand in with fake data.
+// The gstProfile / gstFiling definitions above are kept for reference but no
+// longer registered.
+void gstProfile;
+void gstFiling;
+
 const ADAPTERS: SourceAdapter[] = [
-  gstProfile,
-  gstFiling,
   epfoContributions,
   litigationChequeBounce,
   insolvencyIbbi,

@@ -15,7 +15,7 @@
  * paid sources never run on a contractor the free round already rejected.
  */
 
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, like } from "drizzle-orm";
 import { db } from "@/db";
 import {
   assessments,
@@ -103,7 +103,13 @@ export async function runAssessment(
         .select()
         .from(checks)
         .where(
-          and(eq(checks.contractorId, contractorId), eq(checks.sourceKey, source.key)),
+          and(
+            eq(checks.contractorId, contractorId),
+            eq(checks.sourceKey, source.key),
+            // Only genuinely pasted data — never a leftover mock check from a
+            // source whose adapter was later retired.
+            like(checks.provider, "manual:%"),
+          ),
         )
         .orderBy(desc(checks.requestedAt))
         .limit(1);

@@ -11,6 +11,8 @@ import {
   attachMcaData,
   clearPriorMcaChecks,
 } from "@/lib/sources/manual/mca-ingest";
+import { parseGst, type ParsedGst } from "@/lib/sources/manual/gst";
+import { attachGstData, clearPriorGstChecks } from "@/lib/sources/manual/gst-ingest";
 
 export type IntakeState = { error?: string };
 
@@ -125,6 +127,48 @@ export async function attachMca(formData: FormData): Promise<void> {
   const parsed = parseIndiaFilings(rawText);
   await clearPriorMcaChecks(contractorId);
   await attachMcaData(contractorId, parsed, rawText);
+  await runAssessment(contractorId, { tiers: [1, 2] });
+
+  redirect(`/contractors/${contractorId}`);
+}
+
+// --------------------------------------------------------------------------
+// Manual GST ingest (GST portal paste) — same two-step shape as MCA.
+// --------------------------------------------------------------------------
+
+export type GstPreviewState = {
+  parsed?: ParsedGst;
+  rawText?: string;
+  error?: string;
+};
+
+export async function previewGst(
+  _prev: GstPreviewState,
+  formData: FormData,
+): Promise<GstPreviewState> {
+  const rawText = String(formData.get("rawText") ?? "").trim();
+  if (rawText.length < 15) {
+    return { error: "Paste the GST portal search-result text for this contractor." };
+  }
+  const parsed = parseGst(rawText);
+  if (parsed.foundFields.length === 0) {
+    return {
+      rawText,
+      error:
+        "Could not recognise any GST fields. Make sure this is text copied from a GST portal taxpayer page.",
+    };
+  }
+  return { parsed, rawText };
+}
+
+export async function attachGst(formData: FormData): Promise<void> {
+  const contractorId = String(formData.get("contractorId") ?? "");
+  const rawText = String(formData.get("rawText") ?? "");
+  if (!contractorId || !rawText) return;
+
+  const parsed = parseGst(rawText);
+  await clearPriorGstChecks(contractorId);
+  await attachGstData(contractorId, parsed, rawText);
   await runAssessment(contractorId, { tiers: [1, 2] });
 
   redirect(`/contractors/${contractorId}`);

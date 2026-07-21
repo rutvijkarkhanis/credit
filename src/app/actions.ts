@@ -6,6 +6,11 @@ import { db } from "@/db";
 import { contractors } from "@/db/schema";
 import { runAssessment } from "@/lib/assessment/engine";
 import { intakeSchema } from "@/lib/validation";
+import { parseIndiaFilings, type ParsedMca } from "@/lib/sources/manual/indiafilings";
+import {
+  attachMcaData,
+  clearPriorMcaChecks,
+} from "@/lib/sources/manual/mca-ingest";
 
 export type IntakeState = { error?: string };
 
@@ -71,4 +76,56 @@ export async function reassess(formData: FormData): Promise<void> {
   if (!contractorId) return;
   await runAssessment(contractorId, { tiers: [tier] });
   revalidatePath(`/contractors/${contractorId}`);
+}
+
+// --------------------------------------------------------------------------
+// Manual MCA ingest (IndiaFilings paste) — two steps: preview then attach.
+// --------------------------------------------------------------------------
+
+export type McaPreviewState = {
+  parsed?: ParsedMca;
+  rawText?: string;
+  error?: string;
+};
+
+/**
+ * Step 1: parse only. Writes nothing — returns the extracted fields so the user
+ * can confirm the parse looks right before any of it is stored. A silent
+ * mis-parse into a credit report is exactly the credibility failure to avoid.
+ */
+export async function previewMca(
+  _prev: McaPreviewState,
+  formData: FormData,
+): Promise<McaPreviewState> {
+  const rawText = String(formData.get("rawText") ?? "").trim();
+  if (rawText.length < 20) {
+    return { error: "Paste the full IndiaFilings company / LLP page text." };
+  }
+  const parsed = parseIndiaFilings(rawText);
+  if (parsed.foundFields.length === 0) {
+    return {
+      rawText,
+      error:
+        "Could not recognise any fields. Make sure this is text copied from an IndiaFilings company or LLP page.",
+    };
+  }
+  return { parsed, rawText };
+}
+
+/**
+ * Step 2: attach the confirmed data and re-run a tier 1+2 assessment so the
+ * report reflects it immediately. Re-pasting replaces prior manual MCA data
+ * rather than stacking it.
+ */
+export async function attachMca(formData: FormData): Promise<void> {
+  const contractorId = String(formData.get("contractorId") ?? "");
+  const rawText = String(formData.get("rawText") ?? "");
+  if (!contractorId || !rawText) return;
+
+  const parsed = parseIndiaFilings(rawText);
+  await clearPriorMcaChecks(contractorId);
+  await attachMcaData(contractorId, parsed, rawText);
+  await runAssessment(contractorId, { tiers: [1, 2] });
+
+  redirect(`/contractors/${contractorId}`);
 }

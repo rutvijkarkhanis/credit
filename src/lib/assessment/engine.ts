@@ -15,7 +15,7 @@
  * paid sources never run on a contractor the free round already rejected.
  */
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   assessments,
@@ -93,7 +93,40 @@ export async function runAssessment(
 
   for (const source of applicable) {
     const adapter = getAdapter(source.key);
-    if (!adapter) continue; // no implementation yet → left unqueried, honestly
+
+    // No adapter: fall back to the most recent manually-entered check for this
+    // source, if one exists. This is how manual data (e.g. pasted MCA records)
+    // folds into an assessment as a first-class source rather than a bolt-on.
+    // The manual check keeps its own observedAt, so its age travels with it.
+    if (!adapter) {
+      const [manual] = await db
+        .select()
+        .from(checks)
+        .where(
+          and(eq(checks.contractorId, contractorId), eq(checks.sourceKey, source.key)),
+        )
+        .orderBy(desc(checks.requestedAt))
+        .limit(1);
+      if (!manual) continue; // genuinely unqueried → left out of coverage
+
+      checkIdsForAssessment.push(manual.id);
+      if (manual.status === "success" || manual.status === "not_found") {
+        coverageChecked += 1;
+      }
+      const priorFlags = await db
+        .select({
+          severity: flagsTable.severity,
+          confidence: flagsTable.confidence,
+        })
+        .from(flagsTable)
+        .where(
+          and(eq(flagsTable.checkId, manual.id), isNull(flagsTable.resolvedAt)),
+        );
+      for (const f of priorFlags) {
+        collectedFlags.push({ severity: f.severity, confidence: f.confidence });
+      }
+      continue;
+    }
 
     let outcome;
     try {

@@ -292,17 +292,25 @@ export default async function ContractorReport({
             </div>
           </section>
 
-          {/* Re-run */}
-          <form action={reassess} className="mt-6">
-            <input type="hidden" name="contractorId" value={contractor.id} />
-            <input type="hidden" name="tier" value="1" />
-            <button
-              type="submit"
+          {/* Actions */}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <form action={reassess}>
+              <input type="hidden" name="contractorId" value={contractor.id} />
+              <input type="hidden" name="tier" value="1" />
+              <button
+                type="submit"
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              >
+                Re-run round 1
+              </button>
+            </form>
+            <Link
+              href={`/contractors/${contractor.id}/mca`}
               className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
-              Re-run round 1
-            </button>
-          </form>
+              Add MCA data (paste)
+            </Link>
+          </div>
         </>
       )}
     </main>

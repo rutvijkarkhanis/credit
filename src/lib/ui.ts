@@ -64,6 +64,63 @@ export const VERIFICATION_UI: Record<string, { label: string; className: string 
     unavailable: { label: "Unavailable", className: "text-slate-400" },
   };
 
+/**
+ * Plain-language sentiment labels shown next to every finding and evidence
+ * line, so a non-technical reader can tell at a glance whether an item is
+ * reassuring, a warning, or just a neutral fact.
+ */
+export const TONE_UI: Record<
+  string,
+  { label: string; className: string; dot: string }
+> = {
+  good: {
+    label: "Good",
+    className: "bg-emerald-100 text-emerald-800",
+    dot: "bg-emerald-500",
+  },
+  bad: {
+    label: "Bad",
+    className: "bg-red-100 text-red-800",
+    dot: "bg-red-500",
+  },
+  check: {
+    label: "Check",
+    className: "bg-amber-100 text-amber-900",
+    dot: "bg-amber-500",
+  },
+  info: {
+    label: "Info",
+    className: "bg-slate-100 text-slate-600",
+    dot: "bg-slate-400",
+  },
+};
+
+/** Friendly names for the technical evidence field keys. */
+export const FIELD_LABEL: Record<string, string> = {
+  "gst.status": "GST status",
+  "gst.registration_date": "GST registered on",
+  "gst.constitution": "Business type (GST)",
+  "gst.taxpayer_type": "Taxpayer type",
+  "gst.nature_of_business": "Type of work",
+  "gst.last_return_filed": "Last GST return filed",
+  "gst.cancellation_date": "GST cancelled on",
+  "gst.months_since_last_return": "Months since last GST return",
+  "mca.status": "Company status",
+  "mca.registration_id": "Registration no.",
+  "mca.incorporation_date": "Incorporated on",
+  "mca.roc": "Registrar (ROC)",
+  "mca.registered_address": "Registered address",
+  "mca.contribution": "Capital contribution",
+  "mca.paid_up_capital": "Paid-up capital",
+  "mca.directors": "Directors / partners",
+  "mca.last_annual_return_fy_end": "Last annual return",
+  "mca.last_accounts_fy_end": "Last accounts filed",
+  "epfo.active_members": "Employees (provident fund)",
+  "litigation.cheque_bounce_cases": "Cheque-bounce cases",
+  "insolvency.status": "Insolvency / bankruptcy",
+  "debarment.entry": "Blacklist / debarment",
+};
+
 export const ENTITY_LABEL: Record<string, string> = {
   proprietorship: "Proprietorship",
   partnership: "Partnership",

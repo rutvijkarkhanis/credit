@@ -15,10 +15,17 @@ import { reassess } from "@/app/actions";
 import {
   CONFIDENCE_UI,
   ENTITY_LABEL,
+  FIELD_LABEL,
   SEVERITY_UI,
+  TONE_UI,
   VERDICT_UI,
   VERIFICATION_UI,
 } from "@/lib/ui";
+import {
+  flagTone,
+  formatEvidenceValue,
+  interpretEvidence,
+} from "@/lib/interpret";
 
 export const dynamic = "force-dynamic";
 
@@ -173,6 +180,26 @@ export default async function ContractorReport({
             </p>
           </section>
 
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-slate-500">
+            <span className="font-medium text-slate-600">What the labels mean:</span>
+            {(["good", "check", "bad", "info"] as const).map((t) => (
+              <span key={t} className="flex items-center gap-1.5">
+                <span className={`inline-block h-2 w-2 rounded-full ${TONE_UI[t].dot}`} />
+                <span className="font-medium">{TONE_UI[t].label}</span>
+                <span className="text-slate-400">
+                  {t === "good"
+                    ? "reassuring"
+                    : t === "check"
+                      ? "verify / neutral"
+                      : t === "bad"
+                        ? "warning sign"
+                        : "just a fact"}
+                </span>
+              </span>
+            ))}
+          </div>
+
           {/* Flags */}
           <section className="mt-6">
             <h2 className="mb-3 text-sm font-semibold text-slate-900">
@@ -192,6 +219,7 @@ export default async function ContractorReport({
                 {sortedFlags.map((f) => {
                   const sev = SEVERITY_UI[f.severity];
                   const conf = CONFIDENCE_UI[f.confidence];
+                  const tone = TONE_UI[flagTone(f.severity)];
                   return (
                     <li
                       key={f.id}
@@ -200,8 +228,10 @@ export default async function ContractorReport({
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-2">
                           <span
-                            className={`inline-block h-2 w-2 rounded-full ${sev.dot}`}
-                          />
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone.className}`}
+                          >
+                            {tone.label}
+                          </span>
                           <span className="text-sm font-medium text-slate-900">
                             {f.title}
                           </span>
@@ -213,12 +243,13 @@ export default async function ContractorReport({
                         </span>
                       </div>
                       {f.description && (
-                        <p className="mt-1.5 pl-4 text-xs text-slate-500">
+                        <p className="mt-1.5 text-xs text-slate-500">
                           {f.description}
                         </p>
                       )}
-                      <p className="mt-1.5 pl-4 text-[11px] text-slate-400">
-                        {sev.label} · {sourceName.get(f.sourceKey ?? "") ?? f.sourceKey}
+                      <p className="mt-1.5 text-[11px] text-slate-400">
+                        {sev.label} severity ·{" "}
+                        {sourceName.get(f.sourceKey ?? "") ?? f.sourceKey}
                       </p>
                     </li>
                   );
@@ -256,31 +287,38 @@ export default async function ContractorReport({
                       <ul className="divide-y divide-slate-50">
                         {evs.map((e) => {
                           const ver = VERIFICATION_UI[e.verificationLevel];
+                          const { tone, plain } = interpretEvidence(
+                            e.fieldKey,
+                            e.value,
+                          );
+                          const toneUi = TONE_UI[tone];
                           return (
-                            <li key={e.id} className="px-4 py-2.5">
-                              <div className="flex items-baseline justify-between gap-3">
-                                <span className="font-mono text-[11px] text-slate-400">
-                                  {e.fieldKey}
-                                </span>
-                                <span
-                                  className={`text-[11px] font-medium ${ver.className}`}
-                                >
-                                  {ver.label}
+                            <li key={e.id} className="px-4 py-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span
+                                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${toneUi.className}`}
+                                  >
+                                    {toneUi.label}
+                                  </span>
+                                  <span className="text-sm font-medium text-slate-800">
+                                    {FIELD_LABEL[e.fieldKey] ?? e.fieldKey}
+                                  </span>
+                                </div>
+                                <span className="shrink-0 text-right text-sm font-semibold text-slate-900">
+                                  {formatEvidenceValue(e.fieldKey, e.value)}
                                 </span>
                               </div>
-                              <div className="mt-0.5 text-sm text-slate-800">
-                                {JSON.stringify(e.value)}
-                              </div>
+                              <p className="mt-1 text-xs text-slate-500">{plain}</p>
                               {e.note && (
-                                <p className="mt-0.5 text-xs text-slate-500">
+                                <p className="mt-0.5 text-[11px] text-slate-400">
                                   {e.note}
                                 </p>
                               )}
-                              {e.sourceReference && (
-                                <p className="mt-0.5 text-[11px] text-slate-400">
-                                  {e.sourceReference}
-                                </p>
-                              )}
+                              <p className="mt-0.5 text-[11px] text-slate-400">
+                                {ver.label}
+                                {e.sourceReference ? ` · ${e.sourceReference}` : ""}
+                              </p>
                             </li>
                           );
                         })}
